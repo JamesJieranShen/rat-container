@@ -59,7 +59,7 @@ RUN wget https://cern.ch/geant4-data/releases/geant$GEANT4_VERSION.tar.gz && \
     -DGEANT4_INSTALL_DATA=ON \
     -DGEANT4_BUILD_CXXSTD=c++11 \
     ../geant$GEANT4_VERSION-source && \
-    make -j4 && make install && \
+    make -j$(nproc) && make install && \
     cd .. && \
     rm -rf geant$GEANT4_VERSION-source && \
     rm -rf geant$GEANT4_VERSION-build && \
@@ -69,13 +69,13 @@ RUN wget https://cern.ch/geant4-data/releases/geant$GEANT4_VERSION.tar.gz && \
 ARG ROOT_VERSION=6.32.02
 WORKDIR $SOFTWAREDIR
 
-RUN wget https://root.cern/download/root_v$ROOT_VERSION.source.tar && \
-    tar xvf root_v6.32.02.source.tar && \
+RUN wget https://root.cern/download/root_v$ROOT_VERSION.source.tar.gz && \
+    tar xvf root_v6.32.02.source.tar.gz && \
     mv root-6.32.02 root && \
     mkdir root-build && cd root-build && \
     cmake -Droofit=ON -Dfortran=OFF -Dfftw3=ON -Dgsl=ON -Dgdml=ON -Dmathmore=ON -Dclad=OFF -Dbuiltin_tbb=OFF -Dimt=OFF  ../root && \
-    make -j 4 && \
-    rm ../root_v$ROOT_VERSION.source.tar
+    make -j $(nproc) && \
+    rm ../root_v$ROOT_VERSION.source.tar.gz
 
 # Cleanup the cache to make the image smaller
 RUN apt-get autoremove -y && apt-get clean -y
@@ -83,3 +83,4 @@ RUN apt-get autoremove -y && apt-get clean -y
 # Set up the environment when entering the container
 WORKDIR /home
 ENTRYPOINT ["docker-entrypoint.sh"]
+CMD [ "/bin/bash" ]
