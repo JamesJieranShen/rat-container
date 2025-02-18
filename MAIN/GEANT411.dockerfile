@@ -4,7 +4,7 @@ ARG GEANT4_VERSION=4-11.3.0
 ARG ROOT_VERSION=6.32.02
 ARG SOFTWAREDIR=/home/software
 
-FROM ubuntu:20.04 AS BASE
+FROM ubuntu:20.04 AS base
 
 
 # Switch default shell to bash
@@ -47,12 +47,12 @@ ARG TENSORFLOW_TAR_FILE=libtensorflow-cpu-linux-x86_64-$TENSORFLOW_VERSION.tar.g
 WORKDIR $SOFTWAREDIR
 RUN wget -q https://storage.googleapis.com/tensorflow/libtensorflow/$TENSORFLOW_TAR_FILE && \
     tar -C /usr/local -xzf $TENSORFLOW_TAR_FILE && \
-    rm $TENSORFLOW_TAR_FILE &&
+    rm $TENSORFLOW_TAR_FILE
 RUN git clone --single-branch https://github.com/serizba/cppflow && \
     cd cppflow && \
     git checkout 883eb4c526979dae56f921571b1ab93df85a0a0d
 
-FROM BASE AS G4_BUILDER
+FROM base AS g4_builder
 LABEL maintainer="Will Parker <william.parker@physics.ox.ac.uk>"
 ARG GEANT4_VERSION
 ARG SOFTWAREDIR
@@ -72,7 +72,7 @@ RUN wget -q https://gitlab.cern.ch/geant4/geant4/-/archive/v11.3.0/geant${GEANT4
     rm -rf geant$GEANT4_VERSION-build && \
     rm -rf geant$GEANT4_VERSION.tar.gz
 
-FROM BASE AS ROOT_BUILDER
+FROM base AS root_builder
 LABEL maintainer="Will Parker <william.parker@physics.ox.ac.uk>"
 ARG SOFTWAREDIR
 ARG ROOT_VERSION
@@ -86,10 +86,9 @@ WORKDIR $SOFTWAREDIR/root-build
 RUN cmake -Droofit=ON -Dfortran=OFF -Dfftw3=ON -Dgsl=ON -Dgdml=ON -Dmathmore=ON -Dclad=OFF -Dbuiltin_tbb=OFF -Dimt=OFF -DCMAKE_INSTALL_PREFIX=${SOFTWAREDIR}/root ../root-src
 RUN make -j "$(nproc)" && make install
 
-FROM BASE
+FROM base
 ARG SOFTWAREDIR
 LABEL maintainer="Will Parker <william.parker@physics.ox.ac.uk>"
-COPY --from=TF_BUILDER $SOFTWAREDIR/cppflow $SOFTWAREDIR/cppflow
 COPY --from=G4_BUILDER $SOFTWAREDIR/geant4 $SOFTWAREDIR/geant4
 COPY --from=ROOT_BUILDER $SOFTWAREDIR/root $SOFTWAREDIR/root
 
