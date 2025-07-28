@@ -1,9 +1,9 @@
 #!/bin/bash
 
-pushd /home/software/root-build/bin/
+pushd /home/software/root/bin/ > /dev/null
 source thisroot.sh
-popd
-source /home/software/geant4.10.00.p04/bin/geant4.sh
+popd > /dev/null
+source /home/software/geant4/bin/geant4.sh
 
 source /home/scripts/setup-genie.sh
 # export TF_DIR=/usr/local
