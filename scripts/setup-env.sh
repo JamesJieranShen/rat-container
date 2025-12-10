@@ -5,7 +5,9 @@ source thisroot.sh
 popd > /dev/null
 source /home/software/geant4/bin/geant4.sh
 
-source /home/scripts/setup-genie.sh
+if [ -f /home/scripts/setup-genie.sh ]; then
+  source /home/scripts/setup-genie.sh
+fi
 # export TF_DIR=/usr/local
 # export CPPFLOW_DIR=/home/software/cppflow
 # export LIBRARY_PATH=$LIBRARY_PATH:$TF_DIR/lib

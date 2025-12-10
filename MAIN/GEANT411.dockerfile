@@ -4,7 +4,7 @@ ARG GEANT4_VERSION=4-11.3.0
 ARG ROOT_VERSION=6.32.02
 ARG SOFTWAREDIR=/home/software
 
-FROM ubuntu:20.04 AS base
+FROM ubuntu:22.04 AS base
 
 
 # Switch default shell to bash
@@ -21,7 +21,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN mkdir -p /home/software
 
 RUN apt-get update && apt-get install -y gcc g++ gfortran \
-    libssl-dev libpcre3-dev xlibmesa-glu-dev libglew1.5-dev \
+    libssl-dev libpcre3-dev xlibmesa-glu-dev libglew-dev \
     libftgl-dev libmysqlclient-dev libfftw3-dev libcfitsio-dev cppcheck \
     graphviz-dev libavahi-compat-libdnssd-dev libldap2-dev libxml2-dev libkrb5-dev \
     libgsl0-dev emacs wget git tar curl nano vim rsync strace valgrind make cmake \
@@ -36,21 +36,12 @@ RUN python3 -m pip install --upgrade --no-cache-dir pip && \
     ipython numpy scipy matplotlib pylint
 
 ARG SCONS_VERSION
-# Install SCons via pip (quicker and simpler than from source)
+# Install SCons via pip (quicker and simpler than from source) TODO: remove after cmake
 RUN PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install scons==$SCONS_VERSION
 # Cleanup the cache to make the image smaller
 RUN apt-get autoremove -y && apt-get clean -y
 ARG TENSORFLOW_VERSION
 ARG SOFTWAREDIR
-# Fetch and install TensorFlow C API v1.15.0 and cppflow
-ARG TENSORFLOW_TAR_FILE=libtensorflow-cpu-linux-x86_64-$TENSORFLOW_VERSION.tar.gz
-WORKDIR $SOFTWAREDIR
-RUN wget -q https://storage.googleapis.com/tensorflow/libtensorflow/$TENSORFLOW_TAR_FILE && \
-    tar -C /usr/local -xzf $TENSORFLOW_TAR_FILE && \
-    rm $TENSORFLOW_TAR_FILE
-RUN git clone --single-branch https://github.com/serizba/cppflow && \
-    cd cppflow && \
-    git checkout 883eb4c526979dae56f921571b1ab93df85a0a0d
 
 FROM base AS g4_builder
 LABEL maintainer="Will Parker <william.parker@physics.ox.ac.uk>"
@@ -88,10 +79,22 @@ RUN make -j "$(nproc)" && make install
 
 FROM base
 ARG SOFTWAREDIR
+ARG TENSORFLOW_VERSION
 LABEL maintainer="Will Parker <william.parker@physics.ox.ac.uk>"
-COPY --from=G4_BUILDER $SOFTWAREDIR/geant4 $SOFTWAREDIR/geant4
-COPY --from=ROOT_BUILDER $SOFTWAREDIR/root $SOFTWAREDIR/root
+COPY --from=g4_builder $SOFTWAREDIR/geant4 $SOFTWAREDIR/geant4
+COPY --from=root_builder $SOFTWAREDIR/root $SOFTWAREDIR/root
+# Fetch and install TensorFlow C API and cppflow
+ARG TENSORFLOW_TAR_FILE=libtensorflow-cpu-linux-x86_64-$TENSORFLOW_VERSION.tar.gz
+WORKDIR $SOFTWAREDIR
+RUN wget https://storage.googleapis.com/tensorflow/libtensorflow/$TENSORFLOW_TAR_FILE && \
+    tar -C /usr -xzf $TENSORFLOW_TAR_FILE && \
+    rm $TENSORFLOW_TAR_FILE
+# CPPFlow is no longer needed externally in cmake build, keep for now. 
+RUN git clone --single-branch https://github.com/serizba/cppflow && \
+    cd cppflow && \
+    git checkout 883eb4c526979dae56f921571b1ab93df85a0a0d
 
 # Set up the environment when entering the container
 WORKDIR /home
 ENTRYPOINT ["docker-entrypoint.sh"]
+CMD [ "/bin/bash" ]
